@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Видео Интервью</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .video-container {
+            position: relative;
+            margin-bottom: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .recording-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .question-block {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            min-width: 150px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status-message {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .completion-message {
+            text-align: center;
+            font-size: 1.5em;
+            color: #28a745;
+            font-weight: bold;
+            padding: 30px;
+            background: #d4edda;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Видео Интервью</h1>
+        
+        <div class="video-container">
+            <video id="videoElement" autoplay muted playsinline></video>
+            <div class="recording-indicator" id="recordingIndicator">● ЗАПИСЬ</div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="question-block" id="questionBlock" style="display: none;">
+            <div class="question-text" id="questionText"></div>
+        </div>
+
+        <div class="controls">
+            <button id="startRecordingBtn">Начать запись</button>
+            <button id="nextQuestionBtn" style="display: none;" disabled>Следующий вопрос</button>
+        </div>
+
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+        <div id="completionMessage" class="completion-message" style="display: none;"></div>
+    </div>
+
+    <script>
+        class VideoInterview {
+            constructor() {
+                this.videoElement = document.getElementById('videoElement');
+                this.startBtn = document.getElementById('startRecordingBtn');
+                this.nextBtn = document.getElementById('nextQuestionBtn');
+                this.questionBlock = document.getElementById('questionBlock');
+                this.questionText = document.getElementById('questionText');
+                this.statusMessage = document.getElementById('statusMessage');
+                this.completionMessage = document.getElementById('completionMessage');
+                this.recordingIndicator = document.getElementById('recordingIndicator');
+                this.progressFill = document.getElementById('progressFill');
+
+                this.mediaRecorder = null;
+                this.stream = null;
+                this.currentQuestionIndex = 0;
+                this.isRecording = false;
+                this.sessionId = this.generateSessionId();
+
+                this.questions = [
+                    "Как Вас зовут?",
+                    "Сколько Вам лет?",
+                    "Из какого города Вы?",
+                ];
+
+                this.init();
+            }
+
+            generateSessionId() {
+                return 'interview_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            async init() {
+                this.startBtn.addEventListener('click', () => this.startInterview());
+                this.nextBtn.addEventListener('click', () => this.nextQuestion());
+
+                try {
+                    await this.setupCamera();
+                    this.showStatus('Камера готова. Нажмите "Начать запись" для начала интервью.', 'info');
+                } catch (error) {
+                    this.showStatus('Ошибка доступа к камере: ' + error.message, 'error');
+                }
+            }
+
+            async setupCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: 1280, 
+                            height: 720,
+                            facingMode: 'user'
+                        },
+                        audio: true
+                    });
+                    this.videoElement.srcObject = this.stream;
+                } catch (error) {
+                    throw new Error('Не удалось получить доступ к камере и микрофону');
+                }
+            }
+
+            showStatus(message, type) {
+                this.statusMessage.textContent = message;
+                this.statusMessage.className = `status-message status-${type}`;
+                this.statusMessage.style.display = 'block';
+                
+                setTimeout(() => {
+                    this.statusMessage.style.display = 'none';
+                }, 5000);
+            }
+
+            updateProgress() {
+                const progress = ((this.currentQuestionIndex) / this.questions.length) * 100;
+                this.progressFill.style.width = progress + '%';
+            }
+
+            startInterview() {
+                this.currentQuestionIndex = 0;
+                this.showCurrentQuestion();
+                this.startRecording();
+                this.startBtn.style.display = 'none';
+                this.nextBtn.style.display = 'inline-block';
+                this.updateProgress();
+            }
+
+            showCurrentQuestion() {
+                if (this.currentQuestionIndex < this.questions.length) {
+                    this.questionText.textContent = `Вопрос ${this.currentQuestionIndex + 1}: ${this.questions[this.currentQuestionIndex]}`;
+                    this.questionBlock.style.display = 'block';
+                }
+            }
+
+            async startRecording() {
+                try {
+                    const options = {
+                        mimeType: 'video/webm;codecs=vp9,opus',
+                        videoBitsPerSecond: 2500000,
+                        audioBitsPerSecond: 128000
+                    };
+
+                    this.mediaRecorder = new MediaRecorder(this.stream, options);
+                    this.recordedChunks = [];
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.recordedChunks.push(event.data);
+                        }
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        this.saveRecording();
+                    };
+
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.recordingIndicator.style.display = 'block';
+                    this.nextBtn.disabled = false;
+                    
+                    this.showStatus('Запись началась. Отвечайте на вопрос.', 'success');
+                } catch (error) {
+                    this.showStatus('Ошибка записи: ' + error.message, 'error');
+                }
+            }
+
+            async saveRecording() {
+                const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                const formData = new FormData();
+                const filename = `${this.sessionId}_question_${this.currentQuestionIndex + 1}.webm`;
+                
+                formData.append('video', blob, filename);
+                formData.append('question_number', this.currentQuestionIndex + 1);
+                formData.append('session_id', this.sessionId);
+                formData.append('question_text', this.questions[this.currentQuestionIndex]);
+
+                try {
+                    const response = await fetch('/upload-video', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки видео');
+                    }
+
+                    const result = await response.json();
+                    this.showStatus('Видео успешно сохранено', 'success');
+                } catch (error) {
+                    this.showStatus('Ошибка сохранения: ' + error.message, 'error');
+                }
+            }
+
+            nextQuestion() {
+                if (this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.recordingIndicator.style.display = 'none';
+                    this.nextBtn.disabled = true;
+                }
+
+                this.currentQuestionIndex++;
+                this.updateProgress();
+
+                if (this.currentQuestionIndex < this.questions.length) {
+                    setTimeout(() => {
+                        this.showCurrentQuestion();
+                        this.startRecording();
+                    }, 1000);
+                } else {
+                    this.completeInterview();
+                }
+            }
+
+            completeInterview() {
+                this.questionBlock.style.display = 'none';
+                this.nextBtn.style.display = 'none';
+                this.completionMessage.textContent = 'Опрос закончен! Спасибо за участие.';
+                this.completionMessage.style.display = 'block';
+                this.progressFill.style.width = '100%';
+                
+                // Останавливаем поток камеры
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+            }
+        }
+
+        // Запуск приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            new VideoInterview();
+        });
+    </script>
+</body>
+</html>
